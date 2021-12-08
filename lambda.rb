@@ -19,7 +19,7 @@ require 'base64'
 
 # Global object that responds to the call method. Stay outside of the handler
 # to take advantage of container reuse
-$app ||= Rack::Builder.parse_file("#{__dir__}/app/config.ru").first
+$app ||= Rack::Builder.parse_file("#{__dir__}/config.ru").first
 ENV['RACK_ENV'] ||= 'production'
 
 
@@ -34,14 +34,15 @@ def handler(event:, context:)
   # Rack expects the querystring in plain text, not a hash
   headers = event.fetch 'headers', {}
 
+  $stdout.write "event: #{JSON.pretty_generate(event)}"
   # Environment required by Rack (http://www.rubydoc.info/github/rack/rack/file/SPEC)
   env = {
-    'REQUEST_METHOD' => event.fetch('httpMethod'),
+    'REQUEST_METHOD' => event.dig('requestContext', 'http', 'method'),
     'SCRIPT_NAME' => '',
-    'PATH_INFO' => event.fetch('path', ''),
+    'PATH_INFO' => event.fetch('rawPath', ''),
     'QUERY_STRING' => Rack::Utils.build_query(event['queryStringParameters'] || {}),
-    'SERVER_NAME' => headers.fetch('Host', 'localhost'),
-    'SERVER_PORT' => headers.fetch('X-Forwarded-Port', 443).to_s,
+    'SERVER_NAME' => headers.fetch('host', 'localhost'),
+    'SERVER_PORT' => headers.fetch('x-forwarded-port', 443).to_s,
 
     'rack.version' => Rack::VERSION,
     'rack.url_scheme' => headers.fetch('CloudFront-Forwarded-Proto') { headers.fetch('X-Forwarded-Proto', 'https') },
@@ -61,6 +62,7 @@ def handler(event:, context:)
         "HTTP_#{name}"
     end
     env[header] = value.to_s
+    $stdout.write "request: #{JSON.pretty_generate(env)}"
   end
 
   begin
