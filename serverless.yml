@@ -1,0 +1,23 @@
+service: serverless-rails
+
+provider:
+  name: aws
+  region: ap-northeast-1
+  stage: production
+  runtime: provided.al2
+
+  ecr:
+    images:
+      rails:
+        path: ./
+
+functions:
+  web:
+    image:
+      name: rails
+    events:
+      - httpApi: "*"
+    timeout: 29
+    environment:
+      RAILS_ENV: production
+      SECRET_KEY_BASE: ${env:SECRET_KEY_BASE}
